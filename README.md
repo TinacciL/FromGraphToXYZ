@@ -7,6 +7,7 @@ This program used a python3 interface, to run this code you must install on your
 
 * ```networkx```
 * ```rdkit```
+* ```ASE```
 
 ## Script Structure
 

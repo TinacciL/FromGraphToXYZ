@@ -70,7 +70,6 @@ for i,atom in enumerate(atoms):
     tmp_attr = {'atom': atom}
     G.nodes[i].update(tmp_attr.copy())
 G.add_edges_from(connectivity)
-
 #Encode the molecules from graph object to XYZ format
 tmp_mol = MolFromGraphs(G)
 #Read the molecules in RdKit

@@ -14,43 +14,73 @@ This program used a python3 interface, to run this code you must install on your
 0 - Import the required packages
 
 ```python
-import networkx as nx
 from rdkit import Chem
 from rdkit.Chem import AllChem
+import networkx as nx
+from ase import io, neighborlist, atoms
 ```
 
-1 - Function that encode the molecule from the Euclidean space (.xyz) to the corrisponding graph structure, and you will call it in the main of the code.
+1 - Function that encode the molecules from graph object to .XYZ format, and you will call it in the main of the code.
 
 ```python
-def FromXYZtoGraph(input_file):
-    atoms = ['H','He','Li','C','N','O','F','Na','Si','P','S','Cl']
-    atomic_numb = [1,2,3,6,7,8,9,11,14,15,16,17]
-    mol = io.read(input_file)
-    #compute neighbor of the atoms in xyz format
-    cutOff = neighborlist.natural_cutoffs(mol)
-    neighborList = neighborlist.NeighborList(cutOff, self_interaction=False, bothways=True)
-    neighborList.update(mol)
-    #compure adjacency matrix and atoms list
-    adj_matrix = neighborList.get_connectivity_matrix(sparse=False)
-    Natom_list = mol.get_atomic_numbers()
-    atoms_list = []
-    for i,item in enumerate(Natom_list):
-        for k in range(len(atomic_numb)):
-            if item == atomic_numb[k]:
-                atoms_list.append(atoms[k]) 
-    #convert in networkx-molecules graph
-    G=nx.from_numpy_matrix(adj_matrix)
-    for i,item in enumerate(atoms_list):
-        tmp_attr = {'atom': item}
-        G.nodes[i].update(tmp_attr.copy())
-    return(G)
+def MolFromGraphs(G):
+    # Function based by https://stackoverflow.com/questions/51195392/smiles-from-graph
+	'''
+	Function that takes as input the networkx graph (each node must have an atom property H,N,C,O etc) and return the mol (rdkit) object
+	the function dont discriminate between different type of bond, it care only about the connectivity.
+	'''
+	adjacency_matrix = nx.convert_matrix.to_numpy_matrix(G,weight='bond').tolist()
+	node_list = []
+	for i,node in enumerate(G):
+		node_list.append(G.nodes[i]['atom'])
+	#Create empty editable mol object
+	mol = Chem.RWMol()
+	#Add atoms to mol and keep track of index
+	node_to_idx = {}
+	for i in range(len(node_list)):
+		a = Chem.Atom(node_list[i])
+		molIdx = mol.AddAtom(a)
+		node_to_idx[i] = molIdx
+	#Add bonds between adjacent atoms
+	for ix, row in enumerate(adjacency_matrix):
+		for iy, bond in enumerate(row):
+			#Only traverse half the matrix
+			if iy >= ix:
+				break
+			#Add relevant bond type (there are many more of these)
+			if bond == 0:
+				continue
+			elif bond == 1:
+				bond_type = Chem.rdchem.BondType.SINGLE
+				mol.AddBond(node_to_idx[ix], node_to_idx[iy], bond_type)
+			elif bond == 2:
+			    bond_type = Chem.rdchem.BondType.DOUBLE
+			    mol.AddBond(node_to_idx[ix], node_to_idx[iy], bond_type)
+			elif bond == 3:
+			    bond_type = Chem.rdchem.BondType.TRIPLE
+			    mol.AddBond(node_to_idx[ix], node_to_idx[iy], bond_type)
+	mol.UpdatePropertyCache(strict=False)
+    #Add the possibility in N bearing species cations to have valence 4 for the N center
+	for at in mol.GetAtoms():
+		if at.GetAtomicNum() == 7 and at.GetExplicitValence()==4 and at.GetFormalCharge()==0:
+			at.SetFormalCharge(1)     
+	Chem.SanitizeMol(mol)
+	return mol
 ```
-2 - Code main: computing the isomorphism between two molecular graph object.
+2 - Code main: computing the .XYZ optimized structure at UFF level from molecular graph object.
 
-   2.1 - Encode the molecoles from .xyz to graph molecule objects, modify the path (example "pathToMolecules/mol_0.xyz") where your .xyz is locate.
+   2.1 - Input the parameters in order to create an Molecular graph.
 ```python
-mol_0 = FromXYZtoGraph(pathToMolecules/mol_0.xyz)
-mol_1 = FromXYZtoGraph(pathToMolecules/mol_1.xyz)
+#INPUT - Change the above line in order to save the computed .xyz in the choose path    
+path = '/Users/aaa/Documents/FromGraphToXYZ/'
+#INPUT - Name of the molecules for the .xyz file
+name = 'CH4'
+#INPUT - Ordinated list of atoms in the choose molecule
+atoms = ['H','H','H','H','C']
+#INPUT - Ordinated list of bond in the choose molecule (1 = sigma, 2 = pi, 3 = 2 * pi)
+bonds = [1,1,1,1]
+#INPUT - Ordinated order of Connettivity between list of atom
+edges = [[0,4],[1,4],[2,4],[3,4]]
 ```
 
    2.2 - Run the function to control the isomorphism between the two molecules

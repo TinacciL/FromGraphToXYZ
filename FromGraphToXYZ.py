@@ -41,7 +41,7 @@ def MolFromGraphs(G):
 			    bond_type = Chem.rdchem.BondType.TRIPLE
 			    mol.AddBond(node_to_idx[ix], node_to_idx[iy], bond_type)
 	mol.UpdatePropertyCache(strict=False)
-    #Add the possibility in N bearing species cations to have valence 4 for the N center
+    	#Add the possibility in N bearing species cations to have valence 4 for the N center
 	for at in mol.GetAtoms():
 		if at.GetAtomicNum() == 7 and at.GetExplicitValence()==4 and at.GetFormalCharge()==0:
 			at.SetFormalCharge(1)     

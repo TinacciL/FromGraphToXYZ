@@ -83,18 +83,37 @@ bonds = [1,1,1,1]
 edges = [[0,4],[1,4],[2,4],[3,4]]
 ```
 
-   2.2 - Run the function to control the isomorphism between the two molecules
+   2.2 - Computed the info into molecular graph object
 
 ```python
-prop = 'atom'
-nm = nx.algorithms.isomorphism.categorical_node_match(prop,prop)
-
-if nx.is_isomorphic(mol0,mol_1,node_match=nm):
-    print('Are isomorphic!')
-else:
-    print('Are NOT isomorphic!')
+connectivity = []
+for i,item in enumerate(edges):
+    connectivity.append((edges[i][0],edges[i][1], {'bond': bonds[i]}))
+n_dim = len(atoms)
+G = nx.Graph()
+for i,atom in enumerate(atoms):
+    G.add_node(i)
+    tmp_attr = {'atom': atom}
+    G.nodes[i].update(tmp_attr.copy())
+G.add_edges_from(connectivity)
 ```
-
+   2.3 - Encode the molecules from graph object to XYZ format
+```python
+tmp_mol = MolFromGraphs(G)
+```
+   2.4 - Read the molecules in RdKit
+```python
+AllChem.EmbedMolecule(tmp_mol)
+```
+   2.5 - Optimized the guessed structure with UFF in RdKit
+```python
+AllChem.UFFOptimizeMolecule(tmp_mol)
+```
+   2.6 - Save the .XYZ file of the optimized structure
+```python
+with open(path + name + '.xyz', "w+") as file_mol:
+    file_mol.write(Chem.MolToXYZBlock(tmp_mol))
+```
 ## Associated publication
 aaa
 
